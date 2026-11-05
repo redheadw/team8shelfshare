@@ -3,6 +3,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 - Gwyn Wright
 - Daniel Rasmuso
 - Danae De la Cruz Jiménez
+- Emmanuel Nduka Eze
 
 ## Getting Started
 
