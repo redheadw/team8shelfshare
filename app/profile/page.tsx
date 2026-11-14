@@ -1,5 +1,37 @@
 
-export default function ProfilePage() {
+import { Suspense } from "react";
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
+import { connection } from "next/server";
+import { sql } from "@/lib/db";
+import { updateProfileBio } from "./actions";
+
+// Display the signed-in resident's profile.
+async function ProfileContent() {
+  await connection();
+
+  const session = await auth();
+
+  // Require authentication.
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
+  // Load profile information from Neon PostgreSQL.
+  const users = await sql`
+    SELECT neighborhood, bio
+    FROM users
+    WHERE id = ${session.user.id}
+    LIMIT 1
+  `;
+
+  if (users.length === 0) {
+    redirect("/login");
+  }
+
+  const neighborhood = String(users[0].neighborhood ?? "");
+  const bio = String(users[0].bio ?? "");
+
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
       <h1 className="text-3xl font-bold text-green-700">
@@ -16,39 +48,53 @@ export default function ProfilePage() {
         </h2>
 
         <p className="mt-2 text-sm text-gray-500">
-          Demonstration profile — not yet connected
-          to the database.
+          Your name and email come from your signed-in account.
+          You can update your About Me section below.
         </p>
 
-        <form className="mt-6 space-y-5">
+        <form
+          action={updateProfileBio}
+          className="mt-6 space-y-5"
+        >
+          {/* Full Name */}
           <div>
-            <label htmlFor="name" className="block font-medium">
+            <label
+              htmlFor="name"
+              className="block font-medium"
+            >
               Full Name
             </label>
+
             <input
               id="name"
               name="name"
               type="text"
-              defaultValue="Alex Morgan"
-              disabled
+              value={session.user.name ?? ""}
+              readOnly
               className="mt-2 w-full rounded-lg border p-3"
             />
           </div>
 
+          {/* Email */}
           <div>
-            <label htmlFor="email" className="block font-medium">
+            <label
+              htmlFor="email"
+              className="block font-medium"
+            >
               Email
             </label>
+
             <input
               id="email"
               name="email"
               type="email"
-              defaultValue="alex@example.com"
-              disabled
+              value={session.user.email ?? ""}
+              readOnly
               className="mt-2 w-full rounded-lg border p-3"
             />
           </div>
 
+          {/* Neighborhood */}
           <div>
             <label
               htmlFor="neighborhood"
@@ -56,39 +102,67 @@ export default function ProfilePage() {
             >
               Neighborhood
             </label>
+
             <input
               id="neighborhood"
               name="neighborhood"
               type="text"
-              defaultValue="Lake Valley"
-              disabled
+              value={neighborhood}
+              readOnly
               className="mt-2 w-full rounded-lg border p-3"
             />
           </div>
 
+          {/* Editable Bio */}
           <div>
-            <label htmlFor="bio" className="block font-medium">
+            <label
+              htmlFor="bio"
+              className="block font-medium"
+            >
               About Me
             </label>
+
             <textarea
               id="bio"
               name="bio"
               rows={4}
-              defaultValue="I enjoy sharing tools and helping my neighbors."
-              disabled
-              className="mt-2 w-full rounded-lg border p-3"
+              defaultValue={bio}
+              maxLength={500}
+              placeholder="Tell your neighbors a little about yourself..."
+              className="mt-2 w-full rounded-lg border p-3 focus:border-green-700 focus:outline-none"
             />
+
+            <p className="mt-1 text-sm text-gray-500">
+              Maximum 500 characters.
+            </p>
           </div>
 
+          {/* Save Button */}
           <button
-            type="button"
-            disabled
-            className="w-full cursor-not-allowed rounded-lg bg-green-700 p-3 font-semibold text-white opacity-60"
+            type="submit"
+            className="w-full rounded-lg bg-green-700 p-3 font-semibold text-white hover:bg-green-800"
           >
-            Save Profile — Coming Soon
+            Save Profile
           </button>
         </form>
       </div>
     </main>
+  );
+}
+
+// Suspense handles request-dependent authentication.
+export default function ProfilePage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="mx-auto max-w-2xl px-6 py-12">
+          <p className="text-gray-600">
+            Loading your ShelfShare profile...
+          </p>
+        </main>
+      }
+    >
+      <ProfileContent />
+    </Suspense>
   );
 }
