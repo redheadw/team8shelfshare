@@ -1,6 +1,7 @@
 -- ShelfShare demo data. Run after schema.sql.
--- Fixed ids make the demo predictable; the borrower id matches
--- DEMO_BORROWER_ID in lib/demo-user.ts until Auth.js sign-in is merged.
+-- Fixed ids make the demo predictable. The seeded users have no password, so
+-- they own the demo items but can't sign in: register your own account at
+-- /register, then request one of their items at /dashboard/requests.
 -- In the Neon/Vercel query editor, run each INSERT statement on its own.
 
 INSERT INTO users (id, name, email, neighborhood, bio) VALUES

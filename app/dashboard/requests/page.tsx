@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import BorrowRequestForm from "@/components/BorrowRequestForm";
 import StatusBadge from "@/components/StatusBadge";
@@ -6,7 +7,7 @@ import {
   getBorrowableItems,
   getRequestsByBorrower,
 } from "@/lib/borrow-requests";
-import { getCurrentUserId } from "@/lib/demo-user";
+import { getCurrentUserId } from "@/lib/current-user";
 
 export const metadata: Metadata = {
   title: "My Borrow Requests | ShelfShare",
@@ -61,14 +62,21 @@ export default function RequestsPage() {
   );
 }
 
-async function NewRequest() {
+// Only signed-in members can borrow; everyone else is sent to the login page.
+async function requireUserId(): Promise<string> {
   const userId = await getCurrentUserId();
+  if (!userId) redirect("/login");
+  return userId;
+}
+
+async function NewRequest() {
+  const userId = await requireUserId();
   const items = await getBorrowableItems(userId);
   return <BorrowRequestForm items={items} />;
 }
 
 async function SentRequests() {
-  const userId = await getCurrentUserId();
+  const userId = await requireUserId();
   const requests = await getRequestsByBorrower(userId);
 
   if (requests.length === 0) {

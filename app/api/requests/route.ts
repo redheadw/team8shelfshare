@@ -3,14 +3,24 @@ import {
   createBorrowRequest,
   getRequestsByBorrower,
 } from "@/lib/borrow-requests";
-import { getCurrentUserId } from "@/lib/demo-user";
+import { getCurrentUserId } from "@/lib/current-user";
 import type { NewBorrowRequest } from "@/lib/types";
 import { validateBorrowRequest } from "@/lib/validate-borrow-request";
 
-// GET /api/requests → the current user's borrow requests (newest first)
+// 401: nobody is signed in, so we don't know whose requests these are.
+function signInRequired() {
+  return Response.json(
+    { error: "Please sign in to borrow items." },
+    { status: 401 },
+  );
+}
+
+// GET /api/requests → the signed-in user's borrow requests (newest first)
 export async function GET() {
   try {
     const userId = await getCurrentUserId();
+    if (!userId) return signInRequired();
+
     const requests = await getRequestsByBorrower(userId);
     return Response.json(requests);
   } catch (error) {
@@ -25,6 +35,9 @@ export async function GET() {
 // POST /api/requests → create a pending borrow request
 // Body: { itemId, startDate, dueDate, message? }
 export async function POST(request: Request) {
+  const userId = await getCurrentUserId();
+  if (!userId) return signInRequired();
+
   let body: Partial<Record<keyof NewBorrowRequest, unknown>>;
   try {
     body = await request.json();
@@ -45,7 +58,6 @@ export async function POST(request: Request) {
   }
 
   try {
-    const userId = await getCurrentUserId();
     const created = await createBorrowRequest(userId, body as NewBorrowRequest);
     // 201 Created: a new row now exists in borrow_requests
     return Response.json(created, { status: 201 });
