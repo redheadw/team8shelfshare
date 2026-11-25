@@ -2,22 +2,23 @@
 -- Matches the data model the team agreed on in the Week 03 meeting.
 -- Safe to re-run: every table is created only if it does not exist yet.
 -- In the Neon/Vercel query editor, run each CREATE statement on its own.
+--
+-- users, categories, and items already exist on the shared Neon database
+-- (created with the Auth.js work in #10); the definitions below match those
+-- live tables. On the shared database, only borrow_requests needs creating.
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto; -- provides gen_random_uuid()
 
--- People who lend and borrow. Matches the columns used by the Auth.js
--- registration route (name, email, password_hash, neighborhood).
+-- People who lend and borrow (used by the Auth.js register and login code).
 CREATE TABLE IF NOT EXISTS users (
   id            UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   name          VARCHAR(100) NOT NULL,
   email         VARCHAR(255) NOT NULL UNIQUE,
-  password_hash TEXT,
-  neighborhood  VARCHAR(100),
+  password_hash TEXT         NOT NULL,
+  neighborhood  VARCHAR(100) NOT NULL DEFAULT 'Lake Valley',
   bio           TEXT,
-  avatar_url    TEXT,
-  role          VARCHAR(10)  NOT NULL DEFAULT 'member'
-                CHECK (role IN ('member', 'admin')),
-  created_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS categories (
@@ -29,7 +30,7 @@ CREATE TABLE IF NOT EXISTS categories (
 -- Things people list to lend. deleted_at is the soft delete (issue #3).
 CREATE TABLE IF NOT EXISTS items (
   id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-  owner_id     UUID         NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  owner_id     UUID         NOT NULL REFERENCES users(id),
   category_id  INT          NOT NULL REFERENCES categories(id),
   title        VARCHAR(120) NOT NULL,
   description  TEXT,

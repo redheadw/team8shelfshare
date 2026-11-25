@@ -35,12 +35,23 @@ function daysBetween(start: string, end: string): number {
 }
 
 /**
+ * The earliest start date the server accepts: yesterday by the server's clock.
+ * The server runs on UTC, which is already "tomorrow" for users in the
+ * Americas in the evening, so one day of slack keeps "today" valid everywhere.
+ */
+export function earliestServerStartDate(now: Date = new Date()): string {
+  return toDateString(new Date(now.getTime() - DAY_IN_MS));
+}
+
+/**
  * Checks a borrow request and returns an error message per invalid field.
- * An empty object means the request is valid.
+ * An empty object means the request is valid. `earliestStartDate` defaults to
+ * the local "today" (right for the browser); the server passes
+ * earliestServerStartDate() instead.
  */
 export function validateBorrowRequest(
   input: Partial<Record<keyof NewBorrowRequest, unknown>>,
-  today: string = toDateString(new Date()),
+  earliestStartDate: string = toDateString(new Date()),
 ): FieldErrors {
   const errors: FieldErrors = {};
   const { itemId, startDate, dueDate, message } = input;
@@ -51,7 +62,7 @@ export function validateBorrowRequest(
 
   if (typeof startDate !== "string" || !isRealDate(startDate)) {
     errors.startDate = "Enter a valid start date.";
-  } else if (startDate < today) {
+  } else if (startDate < earliestStartDate) {
     errors.startDate = "Start date can't be in the past.";
   }
 

@@ -5,7 +5,10 @@ import {
 } from "@/lib/borrow-requests";
 import { getCurrentUserId } from "@/lib/current-user";
 import type { NewBorrowRequest } from "@/lib/types";
-import { validateBorrowRequest } from "@/lib/validate-borrow-request";
+import {
+  earliestServerStartDate,
+  validateBorrowRequest,
+} from "@/lib/validate-borrow-request";
 
 // 401: nobody is signed in, so we don't know whose requests these are.
 function signInRequired() {
@@ -49,7 +52,11 @@ export async function POST(request: Request) {
   }
 
   // 400: the form data itself is wrong (missing item, bad dates, ...)
-  const fieldErrors = validateBorrowRequest(body ?? {});
+  // The server clock is UTC, so allow one day of slack for users' time zones.
+  const fieldErrors = validateBorrowRequest(
+    body ?? {},
+    earliestServerStartDate(),
+  );
   if (Object.keys(fieldErrors).length > 0) {
     return Response.json(
       { error: "Please fix the highlighted fields.", fieldErrors },
