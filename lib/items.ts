@@ -163,3 +163,43 @@ export async function deleteItem(
 
   return items.length > 0;
 }
+
+export async function getFilteredItems(
+  query: string = "",
+  categoryId: number | null = null,
+  availability: boolean | null = null,
+): Promise<Item[]> {
+  const searchTerm = `%${query.trim()}%`;
+
+  const items = await sql`
+    SELECT
+      id,
+      owner_id AS "ownerId",
+      category_id AS "categoryId",
+      title,
+      description,
+      condition,
+      image_url AS "imageUrl",
+      is_available AS "isAvailable",
+      deleted_at AS "deletedAt",
+      created_at AS "createdAt",
+      updated_at AS "updatedAt"
+    FROM items
+    WHERE deleted_at IS NULL
+      AND (
+        title ILIKE ${searchTerm}
+        OR description ILIKE ${searchTerm}
+      )
+      AND (
+        ${categoryId}::integer IS NULL
+        OR category_id = ${categoryId}::integer
+      )
+      AND (
+        ${availability}::boolean IS NULL
+        OR is_available = ${availability}::boolean
+      )
+    ORDER BY created_at DESC
+  `;
+
+  return items as Item[];
+}
