@@ -1,4 +1,5 @@
 import "server-only";
+import { connection } from "next/server";
 import { auth } from "@/auth";
 
 /**
@@ -7,6 +8,10 @@ import { auth } from "@/auth";
  * returns 401, and pages redirect to /login.
  */
 export async function getCurrentUserId(): Promise<string | null> {
+  // The session differs per visitor, so this must run at request time.
+  // Without it, Cache Components tries to prerender auth(), which uses
+  // crypto.getRandomValues() (same pattern as app/profile/page.tsx).
+  await connection();
   const session = await auth();
   return session?.user?.id ?? null;
 }
